@@ -1,16 +1,27 @@
-    Perfume Bot - готовый проект
+# Perfume Bot (Render-ready)
 
-    В проекте присутствует прайс и изображения, извлечённые из загруженного файла 'прайс.xlsx'.
+Этот архив содержит готовый Telegram-бот-магазин духов. Проект подготовлен для запуска на Render.com.
 
-    Как запустить локально:
+## Что включено
+- Товары: `data/products.json`
+- Изображения: `images/` (извлечены из твоего `прайс.xlsx`)
+- `bot.py` — основной код (каталог, корзина, оплата, уведомление админу)
+- `config.py` — настройки (вставь свой BOT_TOKEN)
+- `requirements.txt` — зависимости
+- `Procfile` — для Render (worker)
 
-1) Установите зависимости:
-   python3 -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
+## Быстрая инструкция по деплою на Render
+1. Создай репозиторий на GitHub и залей все файлы из архива.
+2. В Render Dashboard нажми **New → Web Service** и подключи репозиторий.
+3. В настройках сервиса укажи:
+   - Build Command: `pip install -r requirements.txt`
+   - Start Command: (не обязательно если Procfile) оставить пустым или `python bot.py`
+4. В **Environment** добавь переменную:
+   - `BOT_TOKEN` — токен от BotFather
+5. Нажми **Create Web Service** или **Manual Deploy**.
 
-2) Запустите бота локально:
-   export BOT_TOKEN='YOUR_TOKEN'
-   python3 bot.py
+## Примечание по безопасности
+Ваш BOT_TOKEN храните в секрете. Не публикуйте токен в открытых репозиториях.
 
-Админ (доступ к /add /delete) = 589839267
+## Как изменить номер карты или ADMIN_ID
+Отредактируйте файл `config.py`.

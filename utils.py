@@ -1,9 +1,11 @@
-import openpyxl, os
-def load_items_from_data():
-    wb = openpyxl.load_workbook('data/price.xlsx')
-    ws = wb.active
-    items = []
-    for row in ws.iter_rows(min_row=2, values_only=True):
-        image_file, name, price = row
-        items.append({'image_file': image_file or '', 'name': name or '', 'price': price or ''})
-    return items
+import json, os
+from pathlib import Path
+
+DATA_FILE = Path(__file__).parent / 'data' / 'products.json'
+
+def load_products():
+    try:
+        with open(DATA_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except:
+        return []
