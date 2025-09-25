@@ -1,6 +1,7 @@
 import logging, json, os, asyncio
 from aiogram import Bot, Dispatcher, types
-from aiogram.filters import Command, Text
+from aiogram.filters import Command
+from aiogram import F
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputFile
 from pathlib import Path
 import config
@@ -50,7 +51,7 @@ def build_main_menu():
 async def cmd_start(message: types.Message):
     await message.answer("🌸 Добро пожаловать в бутик духов!\nВыберите раздел:", reply_markup=build_main_menu())
 
-@dp.message(Text(equals='🛍 Каталог'))
+@dp.message(F.text == '🛍 Каталог')
 async def catalog_cmd(message: types.Message):
     if not PRODUCTS:
         await message.answer('Каталог пуст.')
@@ -75,12 +76,12 @@ async def send_product(chat_id, index):
     img_path = IMAGES_DIR / p.get('image','')
     try:
         if img_path.exists():
-            await (bot or message_bot()).send_photo(chat_id, InputFile(img_path), caption=caption, reply_markup=kb, parse_mode='Markdown')
+            await (_send_via_send_photo)(chat_id, img_path, caption=caption, reply_markup=kb, parse_mode='Markdown')
         else:
-            await (bot or message_bot()).send_message(chat_id, caption, reply_markup=kb, parse_mode='Markdown')
+            await (_send_via_send_message)(chat_id, caption, reply_markup=kb, parse_mode='Markdown')
     except Exception as e:
         # fallback to message if photo fails
-        await (bot or message_bot()).send_message(chat_id, caption, reply_markup=kb, parse_mode='Markdown')
+        await (_send_via_send_message)(chat_id, caption, reply_markup=kb, parse_mode='Markdown')
 
 # helper to create a dummy bot for local preview when BOT_TOKEN not set
 def message_bot():
@@ -110,7 +111,7 @@ async def cb_handler(cb: types.CallbackQuery):
     else:
         await cb.answer()
 
-@dp.message(Text(equals='📋 Прайс'))
+@dp.message(F.text == '📋 Прайс')
 async def price_cmd(message: types.Message):
     if not PRODUCTS:
         await message.answer('Прайс пуст.')
@@ -118,7 +119,7 @@ async def price_cmd(message: types.Message):
     lines = [f"{i+1}. {p.get('name','')} — {p.get('price','')} ₽" for i,p in enumerate(PRODUCTS)]
     await message.answer('💎 Прайс-лист:\n' + '\n'.join(lines))
 
-@dp.message(Text(equals='🧾 Корзина'))
+@dp.message(F.text == '🧾 Корзина')
 async def cart_cmd(message: types.Message):
     user = message.from_user.id
     cart = CARTS.get(user, [])
@@ -184,19 +185,44 @@ async def cart_callbacks(cb: types.CallbackQuery):
     else:
         await cb.answer()
 
-@dp.message(Text(equals='💳 Оплата'))
+@dp.message(F.text == '💳 Оплата')
 async def pay_info(message: types.Message):
     await message.answer(f"Оплата картой:\n{CARD_NUMBER}\nПожалуйста, отправьте чек в чат администратора после оплаты.")
 
-@dp.message(Text(equals='📞 Связаться с администратором'))
+@dp.message(F.text == '📞 Связаться с администратором')
 async def contact_admin(message: types.Message):
     admin_link = f"tg://user?id={ADMIN_ID}"
     kb = types.InlineKeyboardMarkup().add(InlineKeyboardButton('Написать администратору', url=admin_link))
     await message.answer('Связаться с администратором:', reply_markup=kb)
 
-@dp.message(Text(equals='❌ Выйти'))
+@dp.message(F.text == '❌ Выйти')
 async def exit_cmd(message: types.Message):
     await message.answer('Выход. Чтобы вернуться — /start', reply_markup=types.ReplyKeyboardRemove())
+
+
+async def _send_via_send_photo(chat_id, img_path, caption, reply_markup=None, parse_mode=None):
+    if bot:
+        try:
+            await bot.send_photo(chat_id, InputFile(img_path), caption=caption, reply_markup=reply_markup, parse_mode=parse_mode)
+            return True
+        except Exception as e:
+            logger.exception("send_photo failed via bot: %s", e)
+            return False
+    else:
+        await message_bot().send_photo(chat_id, img_path)
+        return True
+
+async def _send_via_send_message(chat_id, text, reply_markup=None, parse_mode=None):
+    if bot:
+        try:
+            await bot.send_message(chat_id, text, reply_markup=reply_markup, parse_mode=parse_mode)
+            return True
+        except Exception as e:
+            logger.exception("send_message failed via bot: %s", e)
+            return False
+    else:
+        await message_bot().send_message(chat_id, text)
+        return True
 
 async def main():
     if bot:
